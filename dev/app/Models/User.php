@@ -9,13 +9,13 @@ class User
 {
     private static $baseUrl = "https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/users";
 
-    public static function create($data)
-    {
+    public static function create($data){
         $response = Http::post(self::$baseUrl, [
             "fields" => [
                 "name" => ["stringValue" => $data['name']],
                 "email" => ["stringValue" => $data['email']],
                 "password" => ["stringValue" => $data['password']],
+                "role" => ["stringValue" => $data['role'] ?? 'estandar'], // 👈 NUEVO
                 "created_at" => ["timestampValue" => now()->toIso8601String()],
                 "updated_at" => ["timestampValue" => now()->toIso8601String()]
             ]
@@ -44,7 +44,8 @@ class User
                     'id' => basename($doc['name']),
                     'name' => $doc['fields']['name']['stringValue'],
                     'email' => $docEmail,
-                    'password' => $doc['fields']['password']['stringValue']
+                    'password' => $doc['fields']['password']['stringValue'],
+                    'role' => $doc['fields']['role']['stringValue'] ?? 'estandar' // 👈 NUEVO
                 ];
             }
         }

@@ -62,7 +62,7 @@ class RegisterController extends Controller
                 ]
             ]);
 
-            return redirect('/dashboard');
+            return redirect('/');
 
         } else {
 

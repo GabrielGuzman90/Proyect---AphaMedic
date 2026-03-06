@@ -24,11 +24,13 @@ class ContactController extends Controller
             $f = $doc['fields'] ?? [];
 
             $mensajes[] = (object)[
+                'id'        => basename($doc['name']), // 🔥 IMPORTANTE (ID FIREBASE)
                 'nombre'    => $f['nombre']['stringValue']    ?? '',
                 'correo'    => $f['correo']['stringValue']    ?? '',
                 'prioridad' => $f['prioridad']['stringValue'] ?? '',
                 'asunto'    => $f['asunto']['stringValue']    ?? '',
                 'mensaje'   => $f['mensaje']['stringValue']   ?? '',
+                'status'    => $f['status']['stringValue']    ?? 'pendiente', // 🔥 NUEVO
             ];
         }
 
@@ -45,7 +47,6 @@ class ContactController extends Controller
             'mensaje'   => 'required|min:10|max:3000'
         ]);
 
-        // Formato requerido por Firestore REST
         $body = [
             "fields" => [
                 "nombre"    => ["stringValue" => $validated['nombre']],
@@ -54,6 +55,7 @@ class ContactController extends Controller
                 "asunto"    => ["stringValue" => $validated['asunto']],
                 "mensaje"   => ["stringValue" => $validated['mensaje']],
                 "fecha"     => ["timestampValue" => now()->toISOString()],
+                "status"    => ["stringValue" => "pendiente"], // 🔥 NUEVO
             ]
         ];
 
@@ -65,5 +67,28 @@ class ContactController extends Controller
 
         return redirect()->back()->with('ok', 'Mensaje enviado correctamente');
     }
-}
 
+    // 🔥 NUEVO: ELIMINAR
+    public function eliminar($id)
+    {
+        Http::delete($this->firestoreUrl . '/' . $id);
+
+        return back()->with('success', 'Mensaje eliminado');
+    }
+
+    // 🔥 NUEVO: ACTUALIZAR STATUS
+    public function cambiarStatus($id, $status)
+    {
+        $url = $this->firestoreUrl . "/$id?updateMask.fieldPaths=status";
+
+        Http::patch($url, [
+            "fields" => [
+                "status" => [
+                    "stringValue" => $status
+                ]
+            ]
+        ]);
+
+        return back()->with('success', 'Estado actualizado');
+    }
+}

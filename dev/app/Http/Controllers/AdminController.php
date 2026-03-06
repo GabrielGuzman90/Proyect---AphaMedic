@@ -11,7 +11,6 @@ class AdminController extends Controller
     private $firestoreUrl = "https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/users";
 
 
-    // Mostrar Dashboard
     public function index()
     {
 
@@ -37,60 +36,44 @@ class AdminController extends Controller
     }
 
 
-    // Mostrar usuario en modal (opcional)
-    public function editUser($id)
-    {
-
-        $response = Http::get($this->firestoreUrl.'/'.$id);
-
-        $fields = $response->json()['fields'];
-
-        $user = (object)[
-            'id' => $id,
-            'name' => $fields['name']['stringValue'] ?? '',
-            'email' => $fields['email']['stringValue'] ?? ''
-        ];
-
-        return view('dashboard.edit', compact('user'));
-
-    }
-
-
-    // Actualizar usuario
     public function updateUser(Request $request, $id)
     {
 
         $request->validate([
-            'name' => 'required',
+            'name' => 'required|string|max:255',
             'email' => 'required|email'
         ]);
 
+        $url = $this->firestoreUrl.'/'.$id
+            .'?updateMask.fieldPaths=name'
+            .'&updateMask.fieldPaths=email';
 
         $body = [
             "fields" => [
-                "name" => ["stringValue" => $request->name],
-                "email" => ["stringValue" => $request->email]
+                "name" => [
+                    "stringValue" => $request->name
+                ],
+                "email" => [
+                    "stringValue" => $request->email
+                ]
             ]
         ];
 
-
-        Http::patch($this->firestoreUrl.'/'.$id, $body);
-
+        Http::patch($url, $body);
 
         return redirect()->route('dashboard')
-        ->with('success', 'Usuario actualizado correctamente.');
+            ->with('success', 'Usuario actualizado correctamente.');
 
     }
 
 
-    // Eliminar usuario
     public function deleteUser($id)
     {
 
         Http::delete($this->firestoreUrl.'/'.$id);
 
         return redirect()->route('dashboard')
-        ->with('success', 'Usuario eliminado.');
+            ->with('success', 'Usuario eliminado.');
 
     }
 

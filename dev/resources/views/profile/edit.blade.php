@@ -1,82 +1,42 @@
-<?php
+@extends('layouts.master')
 
-namespace App\Http\Controllers;
+@section('content')
+<div class="container mt-4">
 
-use Illuminate\Http\Request;
+    <h2>Editar Perfil</h2>
 
-class ProfileController extends Controller
-{
-    /**
-     * Mostrar formulario de edición de perfil
-     */
-    public function edit()
-    {
-        // obtener UID desde la sesión
-        $uid = session('firebase_user_uid');
+    @if(session('success'))
+        <div class="alert alert-success mt-2">{{ session('success') }}</div>
+    @endif
 
-        if (!$uid) {
-            return redirect()->route('login')->with('error', 'Usuario no autenticado');
-        }
+    @if(session('error'))
+        <div class="alert alert-danger mt-2">{{ session('error') }}</div>
+    @endif
 
-        // conectar con Firestore
-        $firestore = app('firebase.firestore')->database();
+    <form action="{{ route('profile.update') }}" method="POST">
+        @csrf
+        @method('PUT')
 
-        // obtener usuario desde Firebase
-        $snapshot = $firestore
-            ->collection('users')
-            ->document($uid)
-            ->snapshot();
+        <div class="mb-3">
+            <label>Nombre</label>
+            <input type="text" name="name" class="form-control" value="{{ $user['name'] }}" required>
+        </div>
 
-        if (!$snapshot->exists()) {
-            return redirect()->back()->with('error', 'Usuario no encontrado en Firebase');
-        }
+        <div class="mb-3">
+            <label>Email</label>
+            <input type="email" name="email" class="form-control" value="{{ $user['email'] }}" required>
+        </div>
 
-        // convertir a objeto para usar -> en Blade
-        $user = (object) $snapshot->data();
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+    </form>
 
-        // agregar uid también
-        $user->uid = $uid;
+    <hr>
 
-        return view('profile.edit', compact('user'));
-    }
+    <form action="{{ route('profile.delete') }}" method="POST" onsubmit="return confirm('¿Seguro quieres eliminar tu perfil?');">
+        @csrf
+        @method('DELETE')
+        <button type="submit" class="btn btn-danger">Eliminar Perfil</button>
+    </form>
 
-    /**
-     * Actualizar perfil
-     */
-    public function update(Request $request)
-    {
-        // validar datos
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-        ]);
-
-        $uid = session('firebase_user_uid');
-
-        if (!$uid) {
-            return redirect()->route('login')->with('error', 'Usuario no autenticado');
-        }
-
-        // conectar con Firestore
-        $firestore = app('firebase.firestore')->database();
-
-        // actualizar datos en Firebase
-        $firestore->collection('users')
-            ->document($uid)
-            ->set([
-                'name' => $request->name,
-                'email' => $request->email,
-            ], ['merge' => true]);
-
-        // actualizar sesión
-        session([
-            'firebase_user' => [
-                'uid' => $uid,
-                'name' => $request->name,
-                'email' => $request->email
-            ]
-        ]);
-
-        return back()->with('success', 'Perfil actualizado correctamente');
-    }
-}
+</div>
+@endsection

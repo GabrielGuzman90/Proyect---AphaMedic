@@ -10,31 +10,30 @@ use Illuminate\Support\Facades\Hash;
 class LoginController extends Controller
 {
 
-
     public function showLoginForm()
     {
         return view('auth.login');
     }
 
 
-
     public function login(Request $request)
     {
-
         $request->validate([
             'email' => 'required|email',
             'password' => 'required'
         ]);
 
 
-        // obtener usuarios desde Firebase
+        // Obtener usuarios desde Firebase
         $response = Http::get(
             'https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/users'
         );
 
 
         if (!$response->successful()) {
-            return back()->withErrors(['error' => 'Error al conectar con Firebase']);
+            return back()->withErrors([
+                'error' => 'Error al conectar con Firebase'
+            ]);
         }
 
 
@@ -47,24 +46,26 @@ class LoginController extends Controller
 
             $email = $fields['email']['stringValue'] ?? '';
             $passwordHash = $fields['password']['stringValue'] ?? '';
+            $role = $fields['role']['stringValue'] ?? 'estandar';
 
 
-            // verificar email
             if ($email === $request->email) {
 
-                // verificar contraseña encriptada
                 if (Hash::check($request->password, $passwordHash)) {
 
-                    $id = basename($doc['name']);
+                    $uid = basename($doc['name']);
 
+                    // Guardar sesión con el ROLE incluido
                     session([
                         'firebase_user' => [
-                            'id' => $id,
+                            'uid' => $uid,
                             'name' => $fields['name']['stringValue'] ?? '',
-                            'email' => $email
+                            'email' => $email,
+                            'role' => $role
                         ]
                     ]);
 
+                    // IMPORTANTE: siempre redirige al inicio normal
                     return redirect('/');
 
                 } else {
@@ -83,19 +84,14 @@ class LoginController extends Controller
         return back()->withErrors([
             'email' => 'Usuario no encontrado'
         ]);
-
     }
-
 
 
     public function logout(Request $request)
     {
-
         session()->forget('firebase_user');
 
         return redirect('/login');
-
     }
-
 
 }

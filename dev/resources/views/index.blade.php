@@ -109,40 +109,6 @@
                 </div>
             </div>
         </div>
-
-         {{-- Card Leer Contactos --}}
-        <div class="col-lg-6 col-md-6 col-sm">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <h5 class="card-title fw-bold">Leer contactos</h5>
-                    <h6 class="card-subtitle mb-2 text-muted">Acceso a registros</h6>
-                    <p class="card-text">
-                        Consulta la información registrada por los usuarios
-                        en la sección de contactos.
-                    </p>
-                    <a href="{{ url('leer-contactos') }}" class="btn btn-primary">
-                        Ver contactos
-                    </a>
-                </div>
-            </div>
-        </div>
-
-        {{-- Card Usuarios --}}
-        <div class="col-lg-6 col-md-6 col-sm">
-            <div class="card shadow-sm h-100">
-                <div class="card-body">
-                    <h5 class="card-title fw-bold">Usuarios registrados</h5>
-                    <h6 class="card-subtitle mb-2 text-muted">Administración del sistema</h6>
-                    <p class="card-text">
-                        Visualiza la lista completa de usuarios registrados
-                        dentro de la plataforma.
-                    </p>
-                    <a href="{{ url('usuarios') }}" class="btn btn-primary">
-                        Ver usuarios
-                    </a>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
