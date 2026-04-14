@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Http;
 
 class AdminController extends Controller
 {
-    private $usersUrl = "https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/user";
+    private $usersUrl = "https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/users";
     private $adminsUrl = "https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/administradores";
 
     /**
