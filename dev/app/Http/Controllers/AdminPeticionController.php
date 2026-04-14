@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\DB;
 
 class AdminPeticionController extends Controller
 {
     private $baseUrl = "https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/peticiones";
+    private $medicamentosUrl = "https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/medicamentos";
 
     // ==========================
     // LISTAR POR ESTADO
@@ -31,20 +31,16 @@ class AdminPeticionController extends Controller
     private function listarPorEstado($estadoFiltro, $vista)
     {
         $response = Http::get($this->baseUrl);
-
         $peticiones = [];
 
         if ($response->successful()) {
-
             $documents = $response->json()['documents'] ?? [];
 
             foreach ($documents as $doc) {
-
                 $fields = $doc['fields'];
                 $estado = $fields['estado']['stringValue'] ?? 'Pendiente';
 
                 if ($estado == $estadoFiltro) {
-
                     $peticiones[] = [
                         'id' => basename($doc['name']),
                         'numero_pedido' => $fields['numero_pedido']['stringValue'] ?? '',
@@ -62,55 +58,112 @@ class AdminPeticionController extends Controller
     }
 
     // ==========================
-    // CAMBIAR ESTADO
+    // CAMBIAR ESTADO + NOTIFICACIÓN 🔔
     // ==========================
 
     public function cambiarEstado($id, $estado)
     {
-        $url = $this->baseUrl . "/" . $id;
+        $url = $this->baseUrl . "/" . $id . "?updateMask.fieldPaths=estado";
 
-        // Si se rechaza → devolver stock
-        if ($estado == "Rechazado") {
-            $this->devolverStock($id);
+        // 🔥 Obtener pedido para sacar correo
+        $pedidoResponse = Http::get($this->baseUrl . "/" . $id);
+
+        $correoUsuario = null;
+
+        if ($pedidoResponse->successful()) {
+            $fields = $pedidoResponse->json()['fields'] ?? [];
+            $correoUsuario = $fields['correo']['stringValue'] ?? null;
         }
 
-        $data = [
+        // 🔁 Si se rechaza → devolver stock
+        if ($estado == "Rechazado") {
+            $this->devolverStockFirebase($id);
+        }
+
+        // 🔥 Actualizar estado
+        Http::patch($url, [
             'fields' => [
                 'estado' => [
                     'stringValue' => $estado
                 ]
             ]
-        ];
+        ]);
 
-        Http::patch($url, $data);
+        // 🔔 CREAR NOTIFICACIÓN
+        if ($correoUsuario) {
+
+            Http::post(
+                'https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/notificaciones',
+                [
+                    'fields' => [
+                        'correo' => ['stringValue' => $correoUsuario],
+                        'mensaje' => ['stringValue' => "Tu petición fue $estado"],
+                        'fecha' => ['timestampValue' => now()->toIso8601String()],
+                        'leido' => ['booleanValue' => false],
+                    ]
+                ]
+            );
+        }
 
         return redirect()->route('admin.peticiones')
             ->with('success', 'Estado actualizado correctamente');
     }
 
     // ==========================
-    // DEVOLVER STOCK MYSQL
+    // DEVOLVER STOCK
     // ==========================
 
-    private function devolverStock($id)
+    private function devolverStockFirebase($pedidoId)
     {
-        $url = $this->baseUrl . "/" . $id;
+        $pedidoUrl = $this->baseUrl . "/" . $pedidoId;
+        $pedidoResponse = Http::get($pedidoUrl);
 
-        $response = Http::get($url);
+        if (!$pedidoResponse->successful()) return;
 
-        if (!$response->successful()) return;
-
-        $fields = $response->json()['fields'];
+        $fields = $pedidoResponse->json()['fields'];
         $medicamentos = $fields['medicamentos']['arrayValue']['values'] ?? [];
 
         foreach ($medicamentos as $med) {
 
             $nombre = $med['mapValue']['fields']['nombre']['stringValue'];
-            $cantidad = $med['mapValue']['fields']['cantidad']['integerValue'];
+            $mg = $med['mapValue']['fields']['mg']['stringValue'] ?? '';
+            $presentacion = $med['mapValue']['fields']['presentacion']['stringValue'] ?? '';
+            $cantidad = (int)($med['mapValue']['fields']['cantidad']['integerValue'] ?? 0);
+            $institucion = $med['mapValue']['fields']['institucion']['stringValue'] ?? '';
 
-            DB::table('medicamentos')
-                ->where('nombre', $nombre)
-                ->increment('disponibilidad', $cantidad);
+            $medResponse = Http::get($this->medicamentosUrl);
+            if (!$medResponse->successful()) continue;
+
+            $documents = $medResponse->json()['documents'] ?? [];
+            $medDoc = null;
+
+            foreach ($documents as $doc) {
+                $fieldsDoc = $doc['fields'] ?? [];
+                if (
+                    ($fieldsDoc['nombre']['stringValue'] ?? '') === $nombre &&
+                    ($fieldsDoc['mg']['integerValue'] ?? '') == $mg &&
+                    ($fieldsDoc['presentacion']['stringValue'] ?? '') === $presentacion
+                ) {
+                    $medDoc = $doc;
+                    break;
+                }
+            }
+
+            if (!$medDoc) continue;
+
+            $docName = $medDoc['name'];
+            $existenciaUrl = $this->medicamentosUrl . "/" . basename($docName) . "/existencias/" . $institucion;
+
+            $existenciaResponse = Http::get($existenciaUrl);
+            $disponibilidad = (int)($existenciaResponse['fields']['disponibilidad']['integerValue'] ?? 0);
+
+            $nuevaDisponibilidad = $disponibilidad + $cantidad;
+
+            Http::patch($existenciaUrl, [
+                'fields' => [
+                    'disponibilidad' => ['integerValue' => (string)$nuevaDisponibilidad]
+                ]
+            ]);
         }
     }
 }

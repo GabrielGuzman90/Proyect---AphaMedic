@@ -11,8 +11,28 @@ class ProfileController extends Controller
 
     public function __construct()
     {
-        // URL base hasta "projects/soa-2026-e277f/databases/(default)/documents"
         $this->firebaseBaseUrl = "https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents";
+    }
+
+    /**
+     * 🔥 Buscar usuario en ambas colecciones (users / administradores)
+     */
+    private function getUserFromFirebase($uid)
+    {
+        $collections = ['users', 'administradores'];
+
+        foreach ($collections as $collection) {
+            $response = Http::get("{$this->firebaseBaseUrl}/{$collection}/{$uid}");
+
+            if ($response->successful()) {
+                return [
+                    'data' => $response->json(),
+                    'collection' => $collection
+                ];
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -28,16 +48,17 @@ class ProfileController extends Controller
 
         $uid = $firebaseUser['uid'];
 
-        // Llamada HTTP GET para obtener los datos del usuario
-        $response = Http::get("{$this->firebaseBaseUrl}/users/{$uid}");
+        $result = $this->getUserFromFirebase($uid);
 
-        if (!$response->successful()) {
-            return redirect()->back()->with('error', 'No se pudo obtener la información del usuario');
+        if (!$result) {
+            return back()->with('error', 'Usuario no encontrado en Firebase');
         }
 
-        $data = $response->json();
+        $data = $result['data'];
 
-        // Convertimos el formato Firestore a array simple
+        // 🔥 Guardamos en sesión de dónde viene (users o administradores)
+        session(['firebase_collection' => $result['collection']]);
+
         $user = [
             'uid'        => $uid,
             'name'       => $data['fields']['name']['stringValue'] ?? '',
@@ -67,15 +88,23 @@ class ProfileController extends Controller
 
         $uid = $firebaseUser['uid'];
 
-        // Traer los datos actuales completos desde Firebase
-        $response = Http::get("{$this->firebaseBaseUrl}/users/{$uid}");
+        // 🔥 Obtenemos la colección detectada
+        $collection = session('firebase_collection');
+
+        if (!$collection) {
+            return back()->with('error', 'No se pudo determinar la colección del usuario');
+        }
+
+        // Obtener datos actuales
+        $response = Http::get("{$this->firebaseBaseUrl}/{$collection}/{$uid}");
+
         if (!$response->successful()) {
-            return back()->with('error', 'No se pudo obtener la información actual del usuario');
+            return back()->with('error', 'No se pudo obtener la información actual');
         }
 
         $data = $response->json();
 
-        // Solo modificamos name y email, los demás campos existentes se mantienen
+        // Datos a actualizar
         $json = [
             'fields' => [
                 'name'  => ['stringValue' => $request->name],
@@ -83,21 +112,21 @@ class ProfileController extends Controller
             ]
         ];
 
-        // Conservar los demás campos existentes automáticamente
+        // Mantener otros campos
         foreach ($data['fields'] as $field => $value) {
             if (!isset($json['fields'][$field])) {
                 $json['fields'][$field] = $value;
             }
         }
 
-        // Llamada HTTP PATCH para actualizar
-        $patchResponse = Http::patch("{$this->firebaseBaseUrl}/users/{$uid}", $json);
+        // PATCH
+        $patchResponse = Http::patch("{$this->firebaseBaseUrl}/{$collection}/{$uid}", $json);
 
         if (!$patchResponse->successful()) {
             return back()->with('error', 'No se pudo actualizar el perfil');
         }
 
-        // Actualizar sesión con los datos nuevos
+        // Actualizar sesión
         session(['firebase_user' => array_merge($firebaseUser, [
             'name'  => $request->name,
             'email' => $request->email,
@@ -118,15 +147,20 @@ class ProfileController extends Controller
         }
 
         $uid = $firebaseUser['uid'];
+        $collection = session('firebase_collection');
 
-        // Llamada HTTP DELETE para eliminar usuario
-        $response = Http::delete("{$this->firebaseBaseUrl}/users/{$uid}");
+        if (!$collection) {
+            return back()->with('error', 'No se pudo determinar la colección');
+        }
+
+        $response = Http::delete("{$this->firebaseBaseUrl}/{$collection}/{$uid}");
 
         if (!$response->successful()) {
             return back()->with('error', 'No se pudo eliminar el perfil');
         }
 
         session()->forget('firebase_user');
+        session()->forget('firebase_collection');
 
         return redirect()->route('login')->with('success', 'Perfil eliminado correctamente');
     }

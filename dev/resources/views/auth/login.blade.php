@@ -19,7 +19,7 @@
         {{-- EMAIL --}}
         <div class="mb-3 text-start">
             <label for="email" class="form-label">
-                {{ __('E-Mail Address') }}
+                {{ __('Correo electronico') }}
             </label>
 
             <input id="email"
@@ -41,7 +41,7 @@
         {{-- PASSWORD --}}
         <div class="mb-2 text-start">
             <label for="password" class="form-label">
-                {{ __('Password') }}
+                {{ __('Contraseña') }}
             </label>
 
             <div class="input-group">
@@ -62,7 +62,7 @@
             @enderror
         </div>
 
-        {{-- REMEMBER --}}
+        {{-- Recordar --}}
         <div class="form-check text-start mb-2">
             <input class="form-check-input"
                 type="checkbox"
@@ -78,7 +78,7 @@
         {{-- FORGOT PASSWORD --}}
         @if (Route::has('password.request'))
             <a class="forgot" href="{{ route('password.request') }}">
-                {{ __('Forgot Your Password?') }}
+                {{ __('¿Olvidaste tu contraseña?') }}
             </a>
         @endif
 
@@ -87,9 +87,9 @@
         </button>
 
         <div class="mt-3" style="font-size:13px;">
-            {{ __("Don't have an account?") }}
+            {{ __("¿No tienes una cuenta?") }}
             <a href="{{ route('register') }}" style="color:#000;font-weight:600;">
-                <strong>{{ __('Register') }}</strong>
+                <strong>{{ __('Registro') }}</strong>
             </a>
         </div>
 

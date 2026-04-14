@@ -1,4 +1,4 @@
-<div class="card shadow-sm border-0">
+<div class="card shadow-sm border-0 fade-tab">
 
     <div class="card-header text-white fw-semibold"
          style="background-color:#008C8C;">
@@ -6,7 +6,7 @@
     </div>
 
     <div class="table-responsive">
-        <table class="table mb-0">
+        <table class="table mb-0 table-hover">
 
             <thead style="background-color:#008C8C; color:white;">
                 <tr>
@@ -18,11 +18,15 @@
                 </tr>
             </thead>
 
-            <tbody>
+            <tbody id="tabla-body">
 
             @forelse($peticiones as $peticion)
 
-            <tr style="border-bottom:1px solid #dee2e6;">
+            <tr class="fila-peticion"
+                data-id="{{ strtolower($peticion['numero_pedido'] ?? '') }}"
+                data-nombre="{{ strtolower($peticion['nombre'] ?? '') }}"
+                data-correo="{{ strtolower($peticion['correo'] ?? '') }}"
+                style="border-bottom:1px solid #dee2e6; transition:0.2s;">
 
                 <td class="px-4 border-end">
                     {{ $peticion['numero_pedido'] }}
@@ -47,7 +51,6 @@
                 </td>
 
                 <td class="text-center">
-
                     <button 
                         class="btn btn-sm text-white"
                         style="background-color:#008C8C;"
@@ -55,11 +58,10 @@
                         data-bs-target="#modal{{ $peticion['id'] }}">
                         Ver
                     </button>
-
                 </td>
             </tr>
 
-            <!-- MODAL DETALLE -->
+            <!-- MODAL -->
             <div class="modal fade" id="modal{{ $peticion['id'] }}" tabindex="-1">
                 <div class="modal-dialog modal-lg">
                     <div class="modal-content">
@@ -91,12 +93,15 @@
                                     -
                                     {{ $med['mapValue']['fields']['cantidad']['integerValue'] }}
                                     caja(s)
+                                    <br>
+                                    <small class="text-muted">
+                                        Institución: {{ $med['mapValue']['fields']['institucion']['stringValue'] ?? 'No definido' }}
+                                    </small>
                                 </div>
                             @endforeach
 
                             <hr>
 
-                            {{-- SOLO mostrar botones si está pendiente --}}
                             @if($peticion['estado'] == 'Pendiente')
 
                             <div class="d-flex justify-content-end gap-2">
@@ -133,7 +138,7 @@
 
             @empty
 
-            <tr>
+            <tr id="sin-resultados">
                 <td colspan="5" class="text-center py-4 text-muted">
                     No hay pedidos en esta sección
                 </td>
@@ -147,3 +152,39 @@
     </div>
 
 </div>
+
+<!-- BUSCADOR -->
+<script>
+window.addEventListener("load", function () {
+
+    const buscador = document.getElementById("buscador");
+
+    if (!buscador) return;
+
+    buscador.addEventListener("input", function () {
+
+        let valor = this.value.toLowerCase();
+        let filas = document.querySelectorAll(".fila-peticion");
+
+        filas.forEach(fila => {
+
+            let id = fila.getAttribute("data-id");
+            let nombre = fila.getAttribute("data-nombre");
+            let correo = fila.getAttribute("data-correo");
+
+            if (
+                id.includes(valor) ||
+                nombre.includes(valor) ||
+                correo.includes(valor)
+            ) {
+                fila.style.display = "";
+            } else {
+                fila.style.display = "none";
+            }
+
+        });
+
+    });
+
+});
+</script>

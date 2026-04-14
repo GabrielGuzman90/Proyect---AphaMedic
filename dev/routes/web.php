@@ -10,6 +10,7 @@ use App\Http\Controllers\MedicamentoController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\PeticionController;
 use App\Http\Controllers\AdminPeticionController;
+use App\Http\Controllers\PedidoController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,11 +18,23 @@ use App\Http\Controllers\AdminPeticionController;
 |--------------------------------------------------------------------------
 */
 
-Route::view('/', 'index')->name('home');
+Route::view('/', 'index')->name('index');
 Route::view('/contacto', 'contact')->name('contacto');
 
 Route::post('/guardar-contacto', [ContactController::class, 'store']);
+Route::view('/cruz-roja', 'lugares.cruz-roja')->name('cruzroja');
+Route::view('/about-us', 'about-us')->name('about-us');
+Route::view('/terminos-condicones', 'terminoscondiciones')->name('terminoscondiciones');
+Route::view('/avisosprivacidad', 'avisosprivacidad')->name('avisosprivacidad');
+Route::get('/home', [MedicamentoController::class,'home'])->name('home');
 
+Route::get('/categoria/{categoria}', 
+    [MedicamentoController::class, 'verCategoria']
+)->name('categoria.ver');
+
+
+
+Route::get('/mis-pedidos', [PedidoController::class, 'index'])->name('pedidos.index');
 /*
 |--------------------------------------------------------------------------
 | LOGIN

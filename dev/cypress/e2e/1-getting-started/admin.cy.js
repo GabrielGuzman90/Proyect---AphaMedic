@@ -4,8 +4,8 @@ describe('Pruebas completas del Administrador', () => {
  
     cy.visit('/login')
 
-    cy.get('input[name="email"]').type('Carlos404@gmail.com')
-    cy.get('input[name="password"]').type('Carlos@404')
+    cy.get('input[name="email"]').type('jose.guzman.is@unipolidgo.edu.mx')
+    cy.get('input[name="password"]').type('GabrielGuzman90Esparza')
 
     cy.get('button[type="submit"]').click()
 
@@ -37,8 +37,8 @@ describe('Pruebas completas del Administrador', () => {
 
   cy.visit('/login')
 
-  cy.get('input[name="email"]').clear().type('juancarlosndd@gmail.com')
-  cy.get('input[name="password"]').clear().type('Juan@404')
+  cy.get('input[name="email"]').clear().type('userestandar@test.com')
+  cy.get('input[name="password"]').clear().type('userEstandar1')
 
   cy.get('button[type="submit"]').click()
 

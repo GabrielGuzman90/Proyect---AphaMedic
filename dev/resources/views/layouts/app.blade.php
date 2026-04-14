@@ -1,143 +1,228 @@
 <!doctype html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-
-    <!-- CSRF -->
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-
-    <title>{{ config('app.name', 'Laravel Firebase') }}</title>
+    <title>Sitio web</title>
 
     <!-- Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 
-    <!-- Styles -->
-    <link href="{{ asset('css/app.css') }}" rel="stylesheet">
+    <style>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+        .admin-badge {
+            background-color: #cfcfcf;
+            color: #000;
+            font-size: 0.7rem;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-right: 6px;
+            font-weight: bold;
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-content {
+            flex: 1;
+        }
+
+        /* NAVBAR */
+
+        .navbar-custom {
+            background-color: #018d97;
+        }
+
+        .navbar-custom .nav-link,
+        .navbar-custom .navbar-brand {
+            color: #fff;
+        }
+
+        .navbar-custom .nav-link:hover {
+            color: #e0f7fa;
+        }
+
+        .search-input {
+            width: 400px;
+            max-width: 100%;
+        }
+
+        .icon-btn {
+            color: #fff;
+            font-size: 1.3rem;
+            margin-left: 1rem;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .icon-btn:hover {
+            color: #e0f7fa;
+        }
+
+        .cart-badge {
+            position: absolute;
+            top: -5px;
+            right: -10px;
+            background: red;
+            color: white;
+            border-radius: 50%;
+            font-size: 12px;
+            padding: 2px 6px;
+        }
+
+        /* FOOTER */
+
+        .footer-custom {
+            background: #018d97;
+            color: white;
+        }
+
+        .footer-custom h5 {
+            margin-bottom: 15px;
+        }
+
+        .footer-custom p {
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .footer-custom a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .footer-custom a:hover {
+            text-decoration: underline;
+        }
+
+        .social-icon {
+            font-size: 20px;
+            margin-right: 10px;
+        }
+
+    </style>
 
 </head>
+
 <body>
 
-<div id="app">
+<!-- NAVBAR -->
 
-    <nav class="navbar navbar-expand-md navbar-light bg-white shadow-sm">
+@if (!isset($noNavbar))
+<nav class="navbar navbar-expand-lg navbar-custom">
 
-        <div class="container">
+    <div class="container-fluid">
 
-            <a class="navbar-brand" href="{{ url('/') }}">
-                {{ config('app.name', 'Laravel Firebase') }}
-            </a>
+        <!-- LOGO -->
 
-            <button class="navbar-toggler" type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#navbarSupportedContent">
+        <a class="navbar-brand d-flex align-items-center" href="{{ url('/home') }}">
+            <img src="{{ asset('img/logo.png') }}" class="me-2" width="50">
+            ALPHAMEDIC
+        </a>
 
-                <span class="navbar-toggler-icon"></span>
+        <div class="collapse navbar-collapse">
 
-            </button>
+            <!-- CATEGORIAS -->
 
+            <ul class="navbar-nav me-auto">
 
-            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <li class="nav-item">
+                    <a href="{{ route('medicamentos.index') }}" class="nav-link">
+                        Categorías
+                    </a>
+                </li>
 
-                <!-- LEFT -->
-                <ul class="navbar-nav me-auto">
+            </ul>
 
-                    @if(session('firebase_user'))
+            <!-- USUARIO LOGUEADO -->
+
+            @if(session('firebase_user'))
+
+                <li class="nav-item dropdown d-flex align-items-center">
                     
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('dashboard') }}">
-                                Dashboard
-                            </a>
-                        </li>
-
+                    @if(session('firebase_user.role') === 'admin')
+                        <span class="admin-badge">
+                            ADMINISTRADOR
+                        </span>
                     @endif
 
-                </ul>
+                    <a
+                        class="nav-link dropdown-toggle d-flex align-items-center"
+                        href="#"
+                        data-bs-toggle="dropdown"
+                    >
 
+                        <img
+                            src="https://ui-avatars.com/api/?name={{ session('firebase_user')['name'] }}"
+                            width="32"
+                            class="rounded-circle me-2"
+                        >
 
-                <!-- RIGHT -->
-                <ul class="navbar-nav ms-auto">
+                        {{ session('firebase_user')['name'] }}
 
-                    @if(!session('firebase_user'))
+                    </a>
 
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('login') }}">
-                                Login
+                    <ul class="dropdown-menu dropdown-menu-end">
+
+                        <li>
+                            <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                                Editar perfil
                             </a>
                         </li>
 
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('register') }}">
-                                Register
-                            </a>
-                        </li>
-
-                    @else
-
-                        <li class="nav-item dropdown">
-
-                            <a class="nav-link dropdown-toggle"
-                                href="#"
-                                data-bs-toggle="dropdown">
-
-                                {{ session('firebase_user.name') }}
-
-                            </a>
-
-
-                            <div class="dropdown-menu dropdown-menu-end">
-
-                                <a class="dropdown-item"
-                                    href="{{ route('profile.edit') }}">
-
-                                    Editar perfil
-
+                        @if(session('firebase_user.role') === 'admin')
+                            <li>
+                                <a class="dropdown-item" href="{{ route('admin.panel') }}">
+                                    Panel principal
                                 </a>
+                            </li>
+                        @endif
 
-
-                                <form method="POST"
-                                      action="{{ route('logout') }}">
-
-                                    @csrf
-
-                                    <button class="dropdown-item">
-
-                                        Logout
-
-                                    </button>
-
-                                </form>
-
-                            </div>
-
+                        <li>
+                            <form action="{{ route('logout') }}" method="POST">
+                                @csrf
+                                <button class="dropdown-item">
+                                    Cerrar sesión
+                                </button>
+                            </form>
                         </li>
 
-                    @endif
+                    </ul>
 
-                </ul>
+                </li>
 
-            </div>
+            @endif
+
+            <!-- USUARIO NO LOGUEADO -->
+
+            @if(!session('firebase_user'))
+
+                <li class="nav-item ms-3">
+                    <a class="btn btn-light" href="{{ route('login') }}">
+                        Iniciar sesión
+                    </a>
+                </li>
+
+            @endif
 
         </div>
+    </div>
+</nav>
+@endif
 
-    </nav>
+<!-- CONTENIDO -->
 
-
-    <main class="py-4">
-
-        <div class="container">
-
-            @yield('content')
-
-        </div>
-
-    </main>
-
-
+<div class="main-content">
+    @yield("content")
 </div>
-
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
 

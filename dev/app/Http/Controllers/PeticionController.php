@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
-use Illuminate\Support\Facades\DB;
-use App\Models\Medicamento;
 
 class PeticionController extends Controller
 {
@@ -27,7 +25,7 @@ class PeticionController extends Controller
 
     public function store(Request $request)
     {
-        // 🔐 Validación fuerte
+        // 🔐 Validación
         $request->validate([
             'nombre' => 'required|string|max:100',
             'telefono' => 'required|string|max:20',
@@ -46,7 +44,7 @@ class PeticionController extends Controller
                 ->with('error', 'Este pedido ya fue enviado.');
         }
 
-        // 🔥 AHORA SÍ LEEMOS LA CLAVE CORRECTA
+        // 🔥 Obtener carrito
         $cart = session()->get($cartKey, []);
 
         if (empty($cart)) {
@@ -54,25 +52,62 @@ class PeticionController extends Controller
                 ->with('error', 'El carrito está vacío.');
         }
 
-        DB::beginTransaction();
+        $baseUrl = "https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/medicamentos";
 
         try {
-
             $medicamentosFirestore = [];
 
             foreach ($cart as $item) {
 
-                $med = Medicamento::findOrFail($item['id']);
+                // 🔹 Buscar medicamento exacto en Firebase
+                $medResponse = Http::get($baseUrl);
+                $documents = $medResponse['documents'] ?? [];
+                $medDoc = null;
 
-                // 🚨 Validar stock
-                if ($item['cantidad'] > $med->disponibilidad) {
-                    throw new \Exception("Stock insuficiente para {$med->nombre}");
+                foreach ($documents as $doc) {
+                    $fields = $doc['fields'] ?? [];
+                    if (
+                        ($fields['nombre']['stringValue'] ?? '') === $item['nombre'] &&
+                        ($fields['mg']['integerValue'] ?? '') == $item['mg'] &&
+                        ($fields['presentacion']['stringValue'] ?? '') === $item['presentacion']
+                    ) {
+                        $medDoc = $doc;
+                        break;
+                    }
                 }
 
-                // 🔻 Descontar stock
-                $med->disponibilidad -= $item['cantidad'];
-                $med->save();
+                if (!$medDoc) {
+                    throw new \Exception("Medicamento {$item['nombre']} no encontrado en Firebase");
+                }
 
+                $docName = $medDoc['name'];
+                $lugar = $item['lugar'] ?? 'No definido';
+
+                // 🔹 URL exacta de la existencia en ese lugar
+                $existenciaUrl = "https://firestore.googleapis.com/v1/{$docName}/existencias/{$lugar}";
+
+                // 🔹 Obtener disponibilidad actual en Firebase
+                $existenciaResponse = Http::get($existenciaUrl);
+                $disponibilidad = 0;
+
+                if ($existenciaResponse->successful()) {
+                    $disponibilidad = (int)($existenciaResponse['fields']['disponibilidad']['integerValue'] ?? 0);
+                }
+
+                // 🚨 Validar stock
+                if ($item['cantidad'] > $disponibilidad) {
+                    throw new \Exception("Stock insuficiente para {$item['nombre']} en {$lugar}");
+                }
+
+                // 🔻 Restar stock en Firebase
+                $newDisponibilidad = $disponibilidad - $item['cantidad'];
+                Http::patch($existenciaUrl, [
+                    'fields' => [
+                        'disponibilidad' => ['integerValue' => (string)$newDisponibilidad]
+                    ]
+                ]);
+
+                // 🔹 Preparar datos para la petición
                 $medicamentosFirestore[] = [
                     'mapValue' => [
                         'fields' => [
@@ -80,13 +115,16 @@ class PeticionController extends Controller
                             'mg' => ['stringValue' => (string)$item['mg']],
                             'presentacion' => ['stringValue' => $item['presentacion']],
                             'cantidad' => ['integerValue' => (int)$item['cantidad']],
+                            'institucion' => ['stringValue' => $lugar],
                         ]
                     ]
                 ];
             }
 
+            // 🔹 Crear número de pedido
             $numeroPedido = 'PED-' . now()->format('YmdHis') . '-' . rand(100,999);
 
+            // 🔹 Preparar datos para Firebase Peticiones
             $data = [
                 'fields' => [
                     'numero_pedido' => ['stringValue' => $numeroPedido],
@@ -103,30 +141,26 @@ class PeticionController extends Controller
                 ]
             ];
 
+            // 🔹 Enviar pedido a Firebase
             $response = Http::post(
                 'https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/peticiones',
                 $data
             );
 
             if (!$response->successful()) {
-                throw new \Exception('Error enviando a Firebase');
+                throw new \Exception('Error enviando pedido a Firebase');
             }
-
-            DB::commit();
 
             // 🔒 Bloquear reenvío
             session()->put('pedido_enviado', true);
 
-            // 🧹 Vaciar carrito correctamente
+            // 🧹 Vaciar carrito
             session()->forget($cartKey);
 
             return redirect()->route('cart.index')
                 ->with('success', "Pedido enviado correctamente. Nº $numeroPedido");
 
         } catch (\Exception $e) {
-
-            DB::rollBack();
-
             return redirect()->back()
                 ->with('error', $e->getMessage());
         }

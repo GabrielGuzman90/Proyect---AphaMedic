@@ -75,9 +75,19 @@
                     style="height:250px; object-fit:cover;">
 
                 <div class="card-body text-center">
+
                     <h5 class="card-title">Cruz Roja Mexicana</h5>
+
                     <p class="card-text">Durango, Dgo. México</p>
-                    <a href="#" class="btn btn-primary">Saber más</a>
+
+                    <a href="{{ route('cruzroja') }}"
+                    class="btn text-white fw-semibold"
+                    style="background:#0A9A9E; border:none;">
+
+                        Saber más
+
+                    </a>
+
                 </div>
             </div>
         </div>
@@ -89,9 +99,19 @@
                     style="height:250px; object-fit:cover;">
 
                 <div class="card-body text-center">
-                    <h5 class="card-title">Hospital municipal del niño</h5>
+
+                    <h5 class="card-title">Hosipital minicipal del niño</h5>
+
                     <p class="card-text">Durango, Dgo. México</p>
-                    <a href="#" class="btn btn-primary">Saber más</a>
+
+                    <a href="{{ route('cruzroja') }}"
+                    class="btn text-white fw-semibold"
+                    style="background:#0A9A9E; border:none;">
+
+                        Saber más
+
+                    </a>
+
                 </div>
             </div>
         </div>
@@ -103,10 +123,20 @@
                     style="height:250px; object-fit:cover;">
 
                 <div class="card-body text-center">
-                    <h5 class="card-title">Caritas del Guadiana A.C</h5>
-                    <p class="card-text">Durango, Dgo. México</p>
-                    <a href="#" class="btn btn-primary">Saber más</a>
-                </div>
+
+                <h5 class="card-title">Caritas de Durango</h5>
+
+                <p class="card-text">Durango, Dgo. México</p>
+
+                <a href="{{ route('cruzroja') }}"
+                class="btn text-white fw-semibold"
+                style="background:#0A9A9E; border:none;">
+
+                    Saber más
+
+                </a>
+
+            </div>
             </div>
         </div>
     </div>

@@ -9,13 +9,17 @@ use Illuminate\Support\Facades\Hash;
 
 class LoginController extends Controller
 {
-
+    /**
+     * Mostrar el formulario de login
+     */
     public function showLoginForm()
     {
         return view('auth.login');
     }
 
-
+    /**
+     * Procesar login
+     */
     public function login(Request $request)
     {
         $request->validate([
@@ -23,75 +27,61 @@ class LoginController extends Controller
             'password' => 'required'
         ]);
 
+        // URLs de Firebase para usuarios y administradores
+        $urls = [
+            'https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/users',
+            'https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/administradores'
+        ];
 
-        // Obtener usuarios desde Firebase
-        $response = Http::get(
-            'https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/users'
-        );
+        foreach ($urls as $url) {
+            $response = Http::get($url);
+            if (!$response->successful()) continue;
 
+            $docs = $response->json()['documents'] ?? [];
 
-        if (!$response->successful()) {
-            return back()->withErrors([
-                'error' => 'Error al conectar con Firebase'
-            ]);
-        }
+            foreach ($docs as $doc) {
+                $fields = $doc['fields'];
+                $email = $fields['email']['stringValue'] ?? '';
+                $passwordHash = $fields['password']['stringValue'] ?? '';
 
+                if ($email !== $request->email) continue;
 
-        $users = $response->json()['documents'] ?? [];
-
-
-        foreach ($users as $doc) {
-
-            $fields = $doc['fields'];
-
-            $email = $fields['email']['stringValue'] ?? '';
-            $passwordHash = $fields['password']['stringValue'] ?? '';
-            $role = $fields['role']['stringValue'] ?? 'estandar';
-
-
-            if ($email === $request->email) {
-
-                if (Hash::check($request->password, $passwordHash)) {
-
-                    $uid = basename($doc['name']);
-
-                    // Guardar sesión con el ROLE incluido
-                    session([
-                        'firebase_user' => [
-                            'uid' => $uid,
-                            'name' => $fields['name']['stringValue'] ?? '',
-                            'email' => $email,
-                            'role' => $role
-                        ]
-                    ]);
-
-                    // IMPORTANTE: siempre redirige al inicio normal
-                    return redirect('/');
-
-                } else {
-
-                    return back()->withErrors([
-                        'email' => 'Contraseña incorrecta'
-                    ]);
-
+                // Verifica contraseña (Hash o plain)
+                $passOk = Hash::check($request->password, $passwordHash) || $request->password === $passwordHash;
+                if (!$passOk) {
+                    return back()->withErrors(['email' => 'Contraseña incorrecta']);
                 }
 
-            }
+                $uid = basename($doc['name']);
 
+                // Asignamos admin si viene de la colección administradores
+                $role = strpos($url, 'administradores') !== false ? 'admin' : 'estandar';
+
+                // Guardamos sesión
+                session([
+                    'firebase_user' => [
+                        'uid' => $uid,
+                        'name' => $fields['name']['stringValue'] ?? '',
+                        'email' => $email,
+                        'role' => $role
+                    ]
+                ]);
+
+                $request->session()->regenerate();
+
+                return redirect('/home');
+            }
         }
 
-
-        return back()->withErrors([
-            'email' => 'Usuario no encontrado'
-        ]);
+        return back()->withErrors(['email' => 'Usuario no encontrado']);
     }
 
-
+    /**
+     * Cerrar sesión
+     */
     public function logout(Request $request)
     {
         session()->forget('firebase_user');
-
         return redirect('/login');
     }
-
 }

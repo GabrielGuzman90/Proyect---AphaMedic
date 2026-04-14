@@ -10,23 +10,34 @@
     <div class="d-flex gap-2 mb-4">
 
         <a href="{{ route('admin.peticiones') }}"
-           class="btn btn-warning text-dark fw-semibold">
+           class="btn filtro-btn btn-outline-primary">
             Pendientes
         </a>
 
         <a href="{{ route('admin.peticiones.aceptados') }}"
-           class="btn btn-success fw-semibold">
+           class="btn filtro-btn filtro-activo">
             Aprobados
         </a>
 
         <a href="{{ route('admin.peticiones.rechazados') }}"
-           class="btn btn-danger fw-semibold">
+           class="btn filtro-btn btn-outline-danger">
             Rechazados
         </a>
 
     </div>
 
-    @include('admin.peticiones.tabla')
+    <div class="mb-4">
+        <input 
+            type="text" 
+            id="buscador"
+            class="form-control shadow-sm"
+            placeholder="Buscar por N° pedido, nombre o correo..."
+        >
+    </div>
+
+    <div class="fade-tab">
+        @include('admin.peticiones.tabla')
+    </div>
 
 </div>
 

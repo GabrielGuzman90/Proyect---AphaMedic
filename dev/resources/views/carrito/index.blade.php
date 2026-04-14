@@ -25,7 +25,7 @@
 
             @if(count($cart) > 0)
 
-            <form action="{{ route('peticion.store') }}" method="POST">
+            <form id="formPedido" action="{{ route('peticion.store') }}" method="POST">
                 @csrf
 
                 <input class="form-control mb-3"
@@ -46,12 +46,17 @@
 
                 @foreach($cart as $item)
                     <input type="hidden"
-                           name="medicamentos[]"
-                           value="{{ $item['nombre'] }} - {{ $item['cantidad'] }} caja(s)">
+                        name="medicamentos[]"
+                        value="{{ $item['nombre'] }} - {{ $item['cantidad'] }} caja(s)">
+                    <input type="hidden"
+                        name="instituciones[]"
+                        value="{{ $item['lugar'] ?? 'No definido' }}">
                 @endforeach
 
-                <button class="btn btn-success w-100"
-                        onclick="this.disabled=true; this.innerText='Enviando...'; this.form.submit();">
+                <!-- BOTON MODIFICADO -->
+                <button type="button"
+                        class="btn btn-success w-100"
+                        onclick="mostrarModal()">
                     Enviar Pedido
                 </button>
 
@@ -93,6 +98,10 @@
                                 {{ $item['mg'] }} mg |
                                 {{ $item['presentacion'] }}
                             </small>
+
+                            <p class="mb-1" style="font-size:13px">
+                                Instituto: <strong>{{ $item['lugar'] ?? 'No definido' }}</strong>
+                            </p>
 
                             <p class="mb-2">
                                 Cantidad actual: {{ $item['cantidad'] }} caja(s)
@@ -146,5 +155,73 @@
     </div>
 
 </div>
+
+<!-- MODAL DE CONFIRMACION -->
+<div class="modal fade" id="modalConfirmacion" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title">Pedido enviado correctamente</h5>
+      </div>
+
+      <div class="modal-body">
+
+        <p>
+            Tu solicitud ha sido enviada con éxito
+        </p>
+
+        <p>
+            Para recoger tu medicamento, sigue estas indicaciones:
+        </p>
+
+        <ul>
+            <li>
+                Si tus medicamentos requieren receta, recuerda llevarla.
+            </li>
+            <li>
+                Acude al instituto correspondiente:
+                <strong id="institutoModal"></strong>
+            </li>
+            <li>
+                Ahí se evaluará si es posible entregarte el medicamento.
+            </li>
+        </ul>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="aceptarYEnviar()">
+            Acepto / Enterado
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+function mostrarModal() {
+
+    let instituto = document.querySelector('input[name="instituciones[]"]');
+
+    if (instituto) {
+        document.getElementById('institutoModal').innerText = instituto.value;
+    }
+
+    let modal = new bootstrap.Modal(document.getElementById('modalConfirmacion'));
+    modal.show();
+}
+
+function aceptarYEnviar() {
+
+    let btn = document.querySelector('.btn-success');
+    btn.disabled = true;
+    btn.innerText = "Enviando...";
+
+    document.getElementById('formPedido').submit();
+}
+</script>
 
 @endsection

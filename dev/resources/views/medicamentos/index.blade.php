@@ -3,100 +3,136 @@
 @section('content')
 
 <style>
-.categoria-section {
-    background: #f5f5f5;
-    border-radius: 20px;
-    padding: 20px 10px;
-    margin-bottom: 30px;
+
+/* Flechas */
+.carousel-control-prev,
+.carousel-control-next {
+    width: 5%;
 }
+
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+    background-color: rgba(0,0,0,0.7);
+    border-radius: 20%;
+    padding: 18px;
+}
+
+/* Indicadores */
+.carousel-indicators button {
+    width: 30px;
+    height: 4px;
+    border-radius: 10px;
+    background-color: #cfcfcf;
+    border: none;
+}
+
+.carousel-indicators .active {
+    background-color: #1a848a
+}
+
 </style>
 
-<div class="container mt-4">
+<div class="mt-4">
 
-@php $i = 0; @endphp
+@php 
+$i = 0; 
+$usuarioLogeado = session('firebase_user');
+@endphp
 
 @foreach($medicamentos as $categoria => $items)
 
-<div class="categoria-section">
+<div style="background:#f5f5f5; padding:30px 0; margin-bottom:30px;">
 
-    <h4 class="text-center mb-4 fw-bold text-capitalize">
-        {{ $categoria }}
-    </h4>
+    <div class="container">
 
-    <div id="carousel{{ $i }}" class="carousel slide" data-bs-ride="false">
+        <h4 class="text-center mb-4 fw-bold text-capitalize">
+            {{ $categoria }}
+        </h4>
 
-        <div class="carousel-inner">
+        <div id="carousel{{ $i }}" class="carousel slide" data-bs-ride="false">
 
-            @foreach($items->chunk(3) as $chunkIndex => $chunk)
+            <div class="carousel-inner">
 
-            <div class="carousel-item {{ $chunkIndex == 0 ? 'active' : '' }}">
+                @foreach($items->chunk(3) as $chunkIndex => $chunk)
 
-                <div class="d-flex justify-content-center">
+                <div class="carousel-item {{ $chunkIndex == 0 ? 'active' : '' }}">
 
-                    @foreach($chunk as $med)
+                    <div class="d-flex justify-content-center">
 
-                    <div class="card mx-3 shadow-sm position-relative"
-                         style="width:250px; border-radius:18px;">
+                        @foreach($chunk as $med)
 
-                        <!-- BOTÓN GUARDAR -->
-                        <button onclick="guardar({{ $med->id }}, this)"
-                                class="btn btn-light position-absolute"
-                                style="right:10px; top:10px; border-radius:50%; width:40px; height:40px;">
+                        <div class="card mx-3 shadow-sm"
+                             style="width:250px; border-radius:18px;">
 
-                            <i class="bi {{ $med->guardado ? 'bi-heart-fill text-danger' : 'bi-heart' }}"></i>
+                            <div class="text-center p-3">
+                                <img src="{{ $med->image_path ? asset('storage/'.$med->image_path) : asset('img/Logo.png') }}"
+                                     height="120">
+                            </div>
 
-                        </button>
+                            <div class="card-body pt-0">
 
-                        <div class="text-center p-3">
-                            <img src="{{ $med->image_path ? asset('storage/'.$med->image_path) : asset('img/Logo.png') }}"
-                                 height="120">
+                                <h6 class="fw-bold mb-1">
+                                    {{ $med->nombre }}
+                                </h6>
+
+                                <small class="text-muted">
+                                    {{ $med->mg }} mg | {{ $med->presentacion }}
+                                </small>
+
+                                <p class="mt-2 mb-1" style="font-size:13px">
+                                    Lugar: <strong>{{ $med->lugar }}</strong>
+                                </p>
+
+                                <p class="mb-1" style="font-size:13px">
+                                    Disponibles: {{ $med->disponibilidad }} cajas
+                                </p>
+
+                                <button onclick="verificarLogin('{{ $med->id }}', '{{ $med->lugar }}')"
+                                        class="btn w-100 mt-2"
+                                        style="background:#1a848a; color:white; border-radius:10px;">
+                                    Solicitar
+                                </button>
+
+                            </div>
                         </div>
 
-                        <div class="card-body pt-0">
+                        @endforeach
 
-                            <h6 class="fw-bold mb-1">
-                                {{ $med->nombre }}
-                            </h6>
-
-                            <small class="text-muted">
-                                {{ $med->mg }} mg | {{ $med->presentacion }}
-                            </small>
-
-                            <p class="mt-2 mb-1" style="font-size:13px">
-                                Disponibles: {{ $med->disponibilidad }} cajas
-                            </p>
-
-                            <!-- BOTÓN SOLICITAR -->
-                            <button onclick="agregarCarrito({{ $med->id }})"
-                                    class="btn w-100 mt-2"
-                                    style="background:#009688; color:white; border-radius:10px;">
-                                Solicitar
-                            </button>
-
-                        </div>
                     </div>
 
-                    @endforeach
-
                 </div>
+
+                @endforeach
+
             </div>
 
-            @endforeach
-
-        </div>
-
-        <!-- INDICADORES -->
-        <div class="carousel-indicators position-static mt-3">
-
-            @foreach($items->chunk(3) as $chunkIndex => $chunk)
-
-            <button type="button"
+            <button class="carousel-control-prev"
+                    type="button"
                     data-bs-target="#carousel{{ $i }}"
-                    data-bs-slide-to="{{ $chunkIndex }}"
-                    class="{{ $chunkIndex == 0 ? 'active' : '' }}">
+                    data-bs-slide="prev">
+                <span class="carousel-control-prev-icon"></span>
             </button>
 
-            @endforeach
+            <button class="carousel-control-next"
+                    type="button"
+                    data-bs-target="#carousel{{ $i }}"
+                    data-bs-slide="next">
+                <span class="carousel-control-next-icon"></span>
+            </button>
+
+            <div class="carousel-indicators position-static mt-4">
+
+                @foreach($items->chunk(3) as $chunkIndex => $chunk)
+
+                <button type="button"
+                        data-bs-target="#carousel{{ $i }}"
+                        data-bs-slide-to="{{ $chunkIndex }}"
+                        class="{{ $chunkIndex == 0 ? 'active' : '' }}">
+                </button>
+
+                @endforeach
+
+            </div>
 
         </div>
 
@@ -111,26 +147,48 @@
 </div>
 
 <script>
-function agregarCarrito(id) {
+const usuarioLogeado = @json($usuarioLogeado);
 
-    fetch("{{ url('/cart/add') }}/" + id)
+// 🔥 NUEVA FUNCIÓN
+function verificarLogin(id, lugar) {
+    if (!usuarioLogeado) {
+        alert("Debes iniciar sesión primero");
+        window.location.href = "/login";
+        return;
+    }
+
+    agregarCarrito(id, lugar);
+}
+
+// 🔹 TU FUNCIÓN ORIGINAL (NO SE TOCA)
+function agregarCarrito(id, lugar) {
+    fetch("{{ url('/cart/add') }}/" + id + "?lugar=" + encodeURIComponent(lugar))
         .then(response => response.json())
         .then(data => {
+            console.log(data); // 👈 AGREGA ESTO
 
             if (data.ok) {
-
-                // Solo mostrar mensaje
                 alert("Solicitud enviada correctamente");
-
-                // Quitamos esta línea para evitar redirección
-                // window.location.href = "{{ route('cart.index') }}";
-
+                actualizarCarrito(data.count);
             } else {
                 alert(data.message);
             }
-
         })
         .catch(error => console.error("Error:", error));
+}
+
+function actualizarCarrito(count) {
+    let badge = document.getElementById("cart-count");
+
+    if (!badge) return;
+
+    if (count > 0) {
+        badge.style.display = "inline-block";
+        badge.innerText = count;
+    } else {
+        badge.style.display = "none";
+        badge.innerText = 0;
+    }
 }
 </script>
 

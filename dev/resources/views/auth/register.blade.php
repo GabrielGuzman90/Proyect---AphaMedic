@@ -1,5 +1,9 @@
 @extends('layouts.app')
 
+@php
+    $noNavbar = true;
+@endphp
+
 @section('content')
 <div class="container d-flex justify-content-center">
     <div class="col-lg-7 col-md-8">

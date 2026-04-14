@@ -12,13 +12,13 @@ class Medicamento extends Model
     protected $table = 'medicamentos';
 
     protected $fillable = [
-        'nombre',
-        'presentacion',
-        'cantidad',
-        'mg',
-        'image_path',
-        'categoria',
-        'guardado',
-        'disponibilidad'
+    'nombre',
+    'presentacion',
+    'mg',
+    'image_path',       // Para mostrar imagen en el carrito
+    'categoria',
+    'guardado',
+    'disponibilidad',
+    'institucion'       // <-- agregar si quieres guardar la institución directamente en MySQL
     ];
 }

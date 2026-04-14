@@ -7,74 +7,129 @@ use Illuminate\Support\Facades\Http;
 
 class AdminController extends Controller
 {
+    private $usersUrl = "https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/users";
+    private $adminsUrl = "https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/administradores";
 
-    private $firestoreUrl = "https://firestore.googleapis.com/v1/projects/soa-2026-e277f/databases/(default)/documents/users";
-
-
-    public function index()
+    /**
+     * 🔥 Dashboard con buscador
+     */
+    public function index(Request $request)
     {
+        $search = strtolower($request->get('search'));
 
-        $response = Http::get($this->firestoreUrl);
-
-        $documents = $response->json()['documents'] ?? [];
+        // 🔥 Obtener USERS
+        $usersResponse = Http::get($this->usersUrl);
+        $usersDocs = $usersResponse->json()['documents'] ?? [];
 
         $users = [];
-
-        foreach ($documents as $doc)
-        {
+        foreach ($usersDocs as $doc) {
             $fields = $doc['fields'];
 
-            $users[] = (object)[
+            $user = (object)[
                 'id' => basename($doc['name']),
                 'name' => $fields['name']['stringValue'] ?? '',
-                'email' => $fields['email']['stringValue'] ?? ''
+                'email' => $fields['email']['stringValue'] ?? '',
+                'type' => 'user'
             ];
+
+            // 🔎 FILTRO
+            if (!$search ||
+                str_contains(strtolower($user->id), $search) ||
+                str_contains(strtolower($user->name), $search) ||
+                str_contains(strtolower($user->email), $search)
+            ) {
+                $users[] = $user;
+            }
         }
 
-        return view('dashboard.index', compact('users'));
+        // 🔥 Obtener ADMINS
+        $adminsResponse = Http::get($this->adminsUrl);
+        $adminsDocs = $adminsResponse->json()['documents'] ?? [];
 
+        $admins = [];
+        foreach ($adminsDocs as $doc) {
+            $fields = $doc['fields'];
+
+            $admin = (object)[
+                'id' => basename($doc['name']),
+                'name' => $fields['name']['stringValue'] ?? '',
+                'email' => $fields['email']['stringValue'] ?? '',
+                'type' => 'admin'
+            ];
+
+            // 🔎 FILTRO
+            if (!$search ||
+                str_contains(strtolower($admin->id), $search) ||
+                str_contains(strtolower($admin->name), $search) ||
+                str_contains(strtolower($admin->email), $search)
+            ) {
+                $admins[] = $admin;
+            }
+        }
+
+        return view('dashboard.index', compact('users', 'admins', 'search'));
     }
 
+    /**
+     * 🔥 Detectar colección automáticamente
+     */
+    private function findUserCollection($id)
+    {
+        $urls = [
+            'users' => $this->usersUrl,
+            'administradores' => $this->adminsUrl
+        ];
 
+        foreach ($urls as $key => $url) {
+            $response = Http::get($url . '/' . $id);
+
+            if ($response->successful()) {
+                return $url;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * ✏️ Actualizar
+     */
     public function updateUser(Request $request, $id)
     {
-
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email'
         ]);
 
-        $url = $this->firestoreUrl.'/'.$id
-            .'?updateMask.fieldPaths=name'
-            .'&updateMask.fieldPaths=email';
+        $url = $this->findUserCollection($id);
 
-        $body = [
+        if (!$url) {
+            return back()->with('error', 'Usuario no encontrado');
+        }
+
+        Http::patch($url . '/' . $id, [
             "fields" => [
-                "name" => [
-                    "stringValue" => $request->name
-                ],
-                "email" => [
-                    "stringValue" => $request->email
-                ]
+                "name" => ["stringValue" => $request->name],
+                "email" => ["stringValue" => $request->email]
             ]
-        ];
+        ]);
 
-        Http::patch($url, $body);
-
-        return redirect()->route('dashboard')
-            ->with('success', 'Usuario actualizado correctamente.');
-
+        return back()->with('success', 'Usuario actualizado correctamente');
     }
 
-
+    /**
+     * 🗑️ Eliminar
+     */
     public function deleteUser($id)
     {
+        $url = $this->findUserCollection($id);
 
-        Http::delete($this->firestoreUrl.'/'.$id);
+        if (!$url) {
+            return back()->with('error', 'Usuario no encontrado');
+        }
 
-        return redirect()->route('dashboard')
-            ->with('success', 'Usuario eliminado.');
+        Http::delete($url . '/' . $id);
 
+        return back()->with('success', 'Usuario eliminado correctamente');
     }
-
 }

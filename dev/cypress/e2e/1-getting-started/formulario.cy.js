@@ -6,8 +6,8 @@ describe('Prueba de Solicitud de Medicamento', () => {
     cy.visit('http://localhost:81/web3/dev/public/login');
 
     // Paso 2: Login
-    cy.get('input[name="email"]').should('be.visible').type('routerqf2005@gmail.com');
-    cy.get('input[name="password"]').should('be.visible').type('Roberto2005*');
+    cy.get('input[name="email"]').should('be.visible').type('userestandar@test.com');
+    cy.get('input[name="password"]').should('be.visible').type('userEstandar1');
     cy.get('button[type="submit"]').click();
 
     // Paso 3: Verificar redirección
